@@ -1,9 +1,11 @@
 import * as THREE from 'three';
 import { setupUIControls } from "./uiControls";
 import {LineBasicMaterial} from "three";
+import {GameObject} from "./GameObject";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+(window as any).camera = camera;
 const renderer = new THREE.WebGLRenderer();
 
 renderer.setSize(window.innerWidth, window.innerHeight);
@@ -36,9 +38,8 @@ const NUMBER_OF_LIGHTS = Math.ceil(NUMBER_OF_CUBES / 10);
 
 const lights: THREE.DirectionalLight[] = [];
 
-
-
-const cubes: THREE.Mesh[] = [];
+// const cubes: THREE.Mesh[] = [];
+const gameObjects: GameObject[] = [];
 const cubeHeight = 1;
 const yOffset = (NUMBER_OF_CUBES * cubeHeight) / 2;
 
@@ -64,13 +65,11 @@ scene.fog = new THREE.Fog(0x000000, 20, 80); // Black fog, starts at 20 units, f
 
 const gap = 0.5;
 for (let i = 0; i < NUMBER_OF_CUBES; i++) {
-    const cube = new THREE.Mesh(geometry, material);
-    cube.position.y = (i * (cubeHeight + gap)) - yOffset;
-    cube.position.x = 0;
-    cube.position.z = -10;
-    cube.rotation.y = (i / NUMBER_OF_CUBES) * Math.PI * 2;
-    group.add(cube);
-    cubes.push(cube);
+    const gameObject = new GameObject(geometry, material, `Cube_${i}`);
+    gameObject.setPosition(0, (i * (cubeHeight + gap)) - yOffset, -10);
+    gameObject.setRotation(0, (i / NUMBER_OF_CUBES) * Math.PI * 2, 0);
+    group.add(gameObject.getMesh());
+    gameObjects.push(gameObject);
 }
 
 scene.add(group);
@@ -84,22 +83,12 @@ let rotationSpeed = 0.0005;
 
 function animate() {
     requestAnimationFrame(animate);
-    cubes.forEach(cube => {
-        cube.rotation.y += rotationSpeed;
-    });
+    gameObjects.forEach(obj => {
+        obj.getMesh().rotation.y += rotationSpeed;
+    })
     // group.rotation.y += rotationSpeed;
     updateLineToVertex(line, randomCubeIndex, randomVertexIndex);
     renderer.render(scene, camera);
-}
-
-function grabRandomVertexFromRandomCube() {
-    const randomCubeIndex = Math.floor(Math.random() * cubes.length);
-    const cube = cubes[randomCubeIndex];
-    const positionAttribute = cube.geometry.getAttribute('position');
-    const randomVertexIndex = Math.floor(Math.random() * (positionAttribute.count));
-    const vertex = new THREE.Vector3().fromBufferAttribute(positionAttribute, randomVertexIndex);
-    cube.localToWorld(vertex);
-    return {vertex, randomCubeIndex, randomVertexIndex};
 }
 
 //create a line where one end of it is at the bottom left of the scene and the other end is the position of the random vertex relative to the chosen cube
@@ -114,15 +103,16 @@ function createLineToVertex(vertex: THREE.Vector3) {
     return line;
 }
 
-const {vertex, randomCubeIndex, randomVertexIndex} = grabRandomVertexFromRandomCube();
+const randomCubeIndex = Math.floor(Math.random() * gameObjects.length);
+const {vertex, randomVertexIndex} = gameObjects[randomCubeIndex | 0].getRandomVertex();
 const line = createLineToVertex(vertex);
 
 //create a function that will update the end vertex of the line in the animation loop, using the same cube index in the cube array
 const updateLineToVertex = (line: THREE.Line, cubeIndex: number, randomVertexIndex: number) => {
-    const cube = cubes[cubeIndex];
-    const positionAttribute = cube.geometry.getAttribute('position');
+    const gameObject = gameObjects[cubeIndex];
+    const positionAttribute = gameObject.getMesh().geometry.getAttribute('position');
     const vertex = new THREE.Vector3().fromBufferAttribute(positionAttribute, randomVertexIndex);
-    cube.localToWorld(vertex);
+    gameObject.getMesh().localToWorld(vertex);
     const points = [];
     points.push(new THREE.Vector3(-1,-10, -9));
     points.push(new THREE.Vector3(vertex.x, vertex.y, vertex.z));
@@ -130,20 +120,6 @@ const updateLineToVertex = (line: THREE.Line, cubeIndex: number, randomVertexInd
     (line.material as LineBasicMaterial).depthTest = false; // disable depth testing for the line material
     line.geometry.setFromPoints(points);
 }
-
-//QUESTION: how do i make the line always apear on top of other gemoetry? layers??
-// Answer: set the renderOrder property of the line to a higher value than other objects in the scene
-
-// question: whats the default render order for all other items in the scene?
-// answer: 0
-
-// QUESTION: i set the line's renderOrder to 2 but it still goes behind the cubes sometimes, why?
-// ANSWER: because the cubes are using a MeshStandardMaterial which uses lighting and shading, so the line can still be occluded by the cubes based on the camera angle and lighting. To fix this, you can set the line's material to use a different depth function or disable depth testing for the line material.
-// Example: line.material.depthTest = false;
-
-// Question: depthTest does not exist on line.material... why?
-// Answer:
-
 
 // Define color schemes for dark and light modes
 
