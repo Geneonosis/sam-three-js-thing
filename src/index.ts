@@ -32,7 +32,7 @@ const material = new THREE.MeshStandardMaterial({
 });
 
 const NUMBER_OF_CUBES = 30;
-const NUMBER_OF_LIGHTS = NUMBER_OF_CUBES / 10;
+const NUMBER_OF_LIGHTS = Math.ceil(NUMBER_OF_CUBES / 10);
 
 const lights: THREE.DirectionalLight[] = [];
 
@@ -62,18 +62,19 @@ const group = new THREE.Group();
 
 scene.fog = new THREE.Fog(0x000000, 20, 80); // Black fog, starts at 20 units, fully opaque at 80
 
+const gap = 0.5;
 for (let i = 0; i < NUMBER_OF_CUBES; i++) {
     const cube = new THREE.Mesh(geometry, material);
-    cube.position.y = (i * cubeHeight) - yOffset;
+    cube.position.y = (i * (cubeHeight + gap)) - yOffset;
     cube.position.x = 0;
     cube.position.z = -10;
-    cube.rotation.y = (i / NUMBER_OF_CUBES) * Math.PI * 8;
+    cube.rotation.y = (i / NUMBER_OF_CUBES) * Math.PI * 2;
     group.add(cube);
     cubes.push(cube);
 }
 
 scene.add(group);
-
+group.position.set(0,-5,-2);
 group.rotation.z = THREE.MathUtils.degToRad(45);
 group.rotation.x = THREE.MathUtils.degToRad(30);
 
