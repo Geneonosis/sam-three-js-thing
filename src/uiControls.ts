@@ -152,5 +152,120 @@ export function setupUIControls(
     metalnessSlider.addEventListener('input', updateCubeControls);
     roughnessSlider.addEventListener('input', updateCubeControls);
 
+    // save button
+    const saveButton = document.createElement('button');
+    saveButton.id = 'save-button';
+    saveButton.textContent = 'Save Settings';
+    saveButton.style.display = 'block';
+    saveButton.style.marginTop = '10px';
+    saveButton.addEventListener('click', () => {
+        const darkMode = button.textContent === 'Switch to Light Mode';
+        const speed = parseInt(slider.value);
+        const startColor = startColorInput.value;
+        const endColor = endColorInput.value;
+        const lightColor = lightColorInput.value;
+        const lightIntensity = parseFloat(intensitySlider.value);
+        const materialColor = materialColorInput.value;
+        const metalness = parseFloat(metalnessSlider.value);
+        const roughness = parseFloat(roughnessSlider.value);
+        saveSettings(darkMode, speed, startColor, endColor, lightColor, lightIntensity, materialColor, metalness, roughness);
+    });
+    container.appendChild(saveButton);
+
+    // load settings from session storage if available
+    const loadButton = document.createElement('button');
+    loadButton.id = 'load-button';
+    loadButton.textContent = 'Load Settings';
+    loadButton.style.display = 'block';
+    loadButton.style.marginTop = '10px';
+    loadButton.addEventListener('click', () => {
+        const settings = loadSettings();
+        if (settings) {
+            const {
+                darkMode,
+                speed,
+                startColor,
+                endColor,
+                lightColor,
+                lightIntensity,
+                materialColor,
+                metalness,
+                roughness,
+            } = settings;
+
+            // apply settings to controls
+            if (darkMode) {
+                button.textContent = 'Switch to Light Mode';
+            } else {
+                button.textContent = 'Switch to Dark Mode';
+            }
+            slider.value = speed.toString();
+            startColorInput.value = startColor;
+            endColorInput.value = endColor;
+            lightColorInput.value = lightColor;
+            intensitySlider.value = lightIntensity.toString();
+            materialColorInput.value = materialColor;
+            metalnessSlider.value = metalness.toString();
+            roughnessSlider.value = roughness.toString();
+
+            // trigger callbacks to apply settings
+            speedCallback(speed);
+            worldGradientCallback(startColor, endColor);
+            lightContorlsCallback(lightColor, lightIntensity);
+            cubeControls(materialColor, metalness, roughness);
+        }
+    });
+    container.appendChild(loadButton);
+
     document.body.appendChild(container);
+}
+
+/**
+ * Saves the current settings to session storage.
+ * @example
+ * ```
+ * saveSettings(darkMode, speed, startColor, endColor, lightColor, lightIntensity, materialColor, metalness, roughness);
+ * ```
+ * @param darkMode
+ * @param speed
+ * @param startColor
+ * @param endColor
+ * @param lightColor
+ * @param lightIntensity
+ * @param materialColor
+ * @param metalness
+ * @param roughness
+ */
+export function saveSettings(
+    darkMode: boolean,
+    speed: number,
+    startColor: string,
+    endColor: string,
+    lightColor: string,
+    lightIntensity: number,
+    materialColor: string,
+    metalness: number,
+    roughness: number,
+) {
+    const settings = {
+        darkMode,
+        speed,
+        startColor,
+        endColor,
+        lightColor,
+        lightIntensity,
+        materialColor,
+        metalness,
+        roughness,
+    };
+    console.log('Saving settings to session storage', settings);
+    sessionStorage.setItem('settings', JSON.stringify(settings));
+}
+
+const loadSettings = () => {
+    const savedSettings = sessionStorage.getItem('settings');
+    if (savedSettings) {
+        return JSON.parse(savedSettings);
+    }
+    return null;
 }
