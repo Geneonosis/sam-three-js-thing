@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { setupUIControls } from "./uiControls";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -132,14 +133,17 @@ function applyColors() {
 
     // Update material
     material.color.setHex(colors.material);
+
+    // Update all button text colors for dark background
+    const buttons= document.getElementsByTagName('button');
+    for (let i = 0; i < buttons.length; i++) {
+        buttons[i].style.color = darkMode ? 'white' : 'black';
+    }
 }
 
-const button = document.getElementById('toggle-button');
-
-button?.addEventListener('click', () => {
+setupUIControls(() => {
     darkMode = !darkMode;
     applyColors();
 });
-
 
 animate();
