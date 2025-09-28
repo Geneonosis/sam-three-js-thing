@@ -1,7 +1,9 @@
 export function setupUIControls(
     toggleCallback: () => void,
     speedCallback: (value: number) => void,
-    worldGradientCallback: (startColor: string, endColor: string) => void
+    worldGradientCallback: (startColor: string, endColor: string) => void,
+    lightContorlsCallback: (color: string, intensity: number) => void,
+    cubeControls: (materialColor: string, metalness: number, roughness: number) => void,
 ) {
     const container = document.createElement('div');
     container.style.position = 'absolute';
@@ -60,6 +62,95 @@ export function setupUIControls(
 
     container.appendChild(startColorInput);
     container.appendChild(endColorInput);
+
+    const lightColorInput = document.createElement('input');
+    lightColorInput.ariaLabel = 'Light Color Picker';
+    lightColorInput.type = 'color';
+    lightColorInput.value = '#87cefa'; // default sky blue
+    lightColorInput.style.marginLeft = '10px';
+    container.appendChild(lightColorInput);
+
+    const intensityLabel = document.createElement('label');
+    intensityLabel.htmlFor = 'intensity-slider';
+    intensityLabel.style.fontFamily = 'Arial, sans-serif';
+    intensityLabel.style.marginLeft = '10px';
+    intensityLabel.textContent = 'Light Intensity';
+    container.appendChild(intensityLabel);
+
+    const intensitySlider = document.createElement('input');
+    intensitySlider.ariaLabel = 'Light Intensity Slider';
+    intensitySlider.type = 'range';
+    intensitySlider.min = '0';
+    intensitySlider.max = '2';
+    intensitySlider.step = '0.01';
+    intensitySlider.value = '1';
+    intensitySlider.id = 'intensity-slider';
+    intensitySlider.style.marginLeft = '10px';
+    container.appendChild(intensitySlider);
+
+    const updateLightControls = () => {
+        const color = lightColorInput.value;
+        const intensity = parseFloat(intensitySlider.value);
+        lightContorlsCallback(color, intensity);
+    };
+
+    lightColorInput.addEventListener('input', updateLightControls);
+    intensitySlider.addEventListener('input', updateLightControls);
+
+    // cube controls
+    const materialColorInput = document.createElement('input');
+    materialColorInput.ariaLabel = 'Material Color Picker';
+    materialColorInput.type = 'color';
+    materialColorInput.value = '#ffffff'; // default white
+    materialColorInput.style.marginLeft = '10px';
+    container.appendChild(materialColorInput);
+
+    const metalnessLabel = document.createElement('label');
+    metalnessLabel.htmlFor = 'metalness-slider';
+    metalnessLabel.style.fontFamily = 'Arial, sans-serif';
+    metalnessLabel.style.marginLeft = '10px';
+    metalnessLabel.textContent = 'Metalness';
+    container.appendChild(metalnessLabel);
+
+    const metalnessSlider = document.createElement('input');
+    metalnessSlider.ariaLabel = 'Metalness Slider';
+    metalnessSlider.type = 'range';
+    metalnessSlider.min = '0';
+    metalnessSlider.max = '1';
+    metalnessSlider.step = '0.01';
+    metalnessSlider.value = '0.5';
+    metalnessSlider.id = 'metalness-slider';
+    metalnessSlider.style.marginLeft = '10px';
+    container.appendChild(metalnessSlider);
+
+    const roughnessLabel = document.createElement('label');
+    roughnessLabel.htmlFor = 'roughness-slider';
+    roughnessLabel.style.fontFamily = 'Arial, sans-serif';
+    roughnessLabel.style.marginLeft = '10px';
+    roughnessLabel.textContent = 'Roughness';
+    container.appendChild(roughnessLabel);
+
+    const roughnessSlider = document.createElement('input');
+    roughnessSlider.ariaLabel = 'Roughness Slider';
+    roughnessSlider.type = 'range';
+    roughnessSlider.min = '0';
+    roughnessSlider.max = '1';
+    roughnessSlider.step = '0.01';
+    roughnessSlider.value = '0.5';
+    roughnessSlider.id = 'roughness-slider';
+    roughnessSlider.style.marginLeft = '10px';
+    container.appendChild(roughnessSlider);
+
+    const updateCubeControls = () => {
+        const materialColor = materialColorInput.value;
+        const metalness = parseFloat(metalnessSlider.value);
+        const roughness = parseFloat(roughnessSlider.value);
+        cubeControls(materialColor, metalness, roughness);
+    };
+
+    materialColorInput.addEventListener('input', updateCubeControls);
+    metalnessSlider.addEventListener('input', updateCubeControls);
+    roughnessSlider.addEventListener('input', updateCubeControls);
 
     document.body.appendChild(container);
 }

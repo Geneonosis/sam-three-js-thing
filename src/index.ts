@@ -19,11 +19,6 @@ gradient.addColorStop(1, '#000000'); // Black
 ctx.fillStyle = gradient;
 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-const directionalLight = new THREE.DirectionalLight(0x0d00ff, 100);
-directionalLight.position.set(5, 10, 7.5);
-directionalLight.rotation.x = THREE.MathUtils.degToRad(100);
-scene.add(directionalLight);
-
 const ambientLight = new THREE.AmbientLight(0xffffff, 100);
 ambientLight.position.set(0,0,0);
 scene.add(ambientLight);
@@ -126,7 +121,6 @@ function applyColors() {
     bgTexture.needsUpdate = true;
 
     // Update lights
-    directionalLight.color.setHex(colors.directionalLight);
     ambientLight.color.setHex(colors.ambientLight);
 
     lights.forEach(light => light.color.setHex(colors.directionalLight));
@@ -167,7 +161,20 @@ const handleWorldGradient = (startColor: string, endColor: string) => {
     bgTexture.needsUpdate = true;
 }
 
-setupUIControls(handleDarkModeToggle, handleSpeedChange, handleWorldGradient);
+const handleDirectionalLightControls = (color: string, intensity: number) => {
+    lights.forEach(light => {
+        light.color = new THREE.Color(color);
+        light.intensity = intensity;
+    });
+}
+
+const handleCubeControls = (materialColor: string, metalness: number, roughness: number) => {
+    material.color = new THREE.Color(materialColor);
+    material.metalness = metalness;
+    material.roughness = roughness;
+}
+
+setupUIControls(handleDarkModeToggle, handleSpeedChange, handleWorldGradient, handleDirectionalLightControls, handleCubeControls);
 
 applyColors();
 animate();
