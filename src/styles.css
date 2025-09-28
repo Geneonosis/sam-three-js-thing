@@ -16,3 +16,15 @@ button {
     cursor: pointer;
     box-shadow: 0 4px 16px rgba(0,0,0,0.1);
 }
+
+/* color picker input stylization glass */
+input[type="color"] {
+    -webkit-appearance: none;
+    border: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 100%;
+    cursor: pointer;
+    padding: 0;
+    background: none;
+}

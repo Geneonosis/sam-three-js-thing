@@ -83,11 +83,14 @@ group.rotation.x = THREE.MathUtils.degToRad(30);
 
 camera.position.z = 10;
 
+let rotationSpeed = 0.0005;
+
 function animate() {
     requestAnimationFrame(animate);
     cubes.forEach(cube => {
-        cube.rotation.y += 0.0005;
+        cube.rotation.y += rotationSpeed;
     });
+    // group.rotation.y += rotationSpeed;
     renderer.render(scene, camera);
 }
 
@@ -139,11 +142,32 @@ function applyColors() {
     for (let i = 0; i < buttons.length; i++) {
         buttons[i].style.color = darkMode ? 'white' : 'black';
     }
+
+    const labels = document.getElementsByTagName('label');
+    for (let i = 0; i < labels.length; i++) {
+        labels[i].style.color = darkMode ? 'white' : 'black';
+    }
 }
 
-setupUIControls(() => {
+const handleDarkModeToggle = () => {
     darkMode = !darkMode;
     applyColors();
-});
+}
 
+const handleSpeedChange = (value: number) => {
+    rotationSpeed = value / 100000;
+}
+
+const handleWorldGradient = (startColor: string, endColor: string) => {
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, startColor);
+    gradient.addColorStop(1, endColor);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    bgTexture.needsUpdate = true;
+}
+
+setupUIControls(handleDarkModeToggle, handleSpeedChange, handleWorldGradient);
+
+applyColors();
 animate();
