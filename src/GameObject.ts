@@ -19,24 +19,23 @@ import { v4 as uuidv4 } from 'uuid';
  *
  * @see {@link https://threejs.org/docs/index.html#api/en/core/Object3D|Three.js Object3D}
  */
-class GameObject {
-    mesh: THREE.Mesh;
-    id: string = uuidv4();
+class GameObject extends THREE.Mesh{
+    _id: string = uuidv4();
     staticName: string = 'GameObject';
     providedName: string = '';
     verbose: boolean = false;
     constructor(geometry?: THREE.BufferGeometry, material?: THREE.Material, providedName?: string, verbose?: boolean) {
-        if (verbose) this.verbose = verbose;
-        if (providedName) this.providedName = providedName;
         if (!material) {
             material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
         }
         if (!geometry) {
             geometry = new THREE.BoxGeometry(1, 1, 1);
         }
-        this.mesh = new THREE.Mesh(geometry, material);
+        super(geometry, material);
+        if (verbose) this.verbose = verbose;
+        if (providedName) this.providedName = providedName;
         this.onClick((event => {
-            console.log(`Clicked on ${this.providedName || this.staticName} (ID: ${this.id})`);
+            console.log(`Clicked on ${this.providedName || this.staticName} (ID: ${this._id})`);
             console.log(this.getMetaData());
         }));
         this.onHover(( (event, isHovering) => {
@@ -55,7 +54,7 @@ class GameObject {
                    infoDiv.style.fontFamily = 'Arial, sans-serif';
                    document.body.appendChild(infoDiv);
                }
-               infoDiv.innerHTML = `${this.providedName || this.staticName} (ID: ${this.id}) <br> this.getMetaData(): <br> ${this.prettyPrintAsHTML()}`;
+               infoDiv.innerHTML = `${this.providedName || this.staticName} (ID: ${this._id}) <br> this.getMetaData(): <br> ${this.prettyPrintAsHTML()}`;
                infoDiv.style.left = `${event.clientX + 10}px`;
                infoDiv.style.top = `${event.clientY + 10}px`;
                infoDiv.style.display = 'block';
@@ -69,19 +68,19 @@ class GameObject {
             }
         }, verbose);
 
-        if (this.verbose) console.log(`Created ${this.providedName || this.staticName} with ID: ${this.id}`);
+        if (this.verbose) console.log(`Created ${this.providedName || this.staticName} with ID: ${this._id}`);
     };
     setPosition(x: number, y: number, z: number) {
-        this.mesh.position.set(x, y, z);
+        this.position.set(x, y, z);
     };
     setRotation(x: number, y: number, z: number) {
-        this.mesh.rotation.set(x, y, z);
+        this.rotation.set(x, y, z);
     };
     setScale(x: number, y: number, z: number) {
-        this.mesh.scale.set(x, y, z);
+        this.scale.set(x, y, z);
     };
     getMesh() {
-        return this.mesh;
+        return this;
     };
 
     onClick(callback: (event: MouseEvent) => void) {
@@ -170,7 +169,7 @@ class GameObject {
         const raycaster = new THREE.Raycaster();
         raycaster.setFromCamera(mouse, (window as any).camera); // Assuming camera is globally accessible
 
-        return raycaster.intersectObject(this.mesh);
+        return raycaster.intersectObject(this);
     }
 
     /**
@@ -182,9 +181,9 @@ class GameObject {
             id: this.id,
             staticName: this.staticName,
             providedName: this.providedName,
-            position: this.mesh.position,
-            rotation: this.mesh.rotation,
-            scale: this.mesh.scale,
+            position: this.position,
+            rotation: this.rotation,
+            scale: this.scale,
         };
     };
 
@@ -209,10 +208,10 @@ class GameObject {
      * @returns A THREE.Vector3 representing the position of a random vertex in world space.
      */
     getRandomVertex(): { vertex: THREE.Vector3, randomVertexIndex: number } {
-        const positionAttribute = this.mesh.geometry.getAttribute('position');
+        const positionAttribute = this.geometry.getAttribute('position');
         const randomVertexIndex = Math.floor(Math.random() * (positionAttribute.count));
         const vertex = new THREE.Vector3().fromBufferAttribute(positionAttribute, randomVertexIndex);
-        this.mesh.localToWorld(vertex);
+        this.localToWorld(vertex);
         return {vertex, randomVertexIndex};
     }
 }
