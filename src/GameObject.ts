@@ -61,13 +61,6 @@ class GameObject extends THREE.Mesh{
             }
         }),verbose);
 
-        this.onHoverEnd(() => {
-            let infoDiv = document.getElementById('info-div');
-            if (infoDiv) {
-                infoDiv.style.display = 'none';
-            }
-        }, verbose);
-
         if (this.verbose) console.log(`Created ${this.providedName || this.staticName} with ID: ${this._id}`);
     };
     setPosition(x: number, y: number, z: number) {

@@ -81,7 +81,12 @@ camera.position.z = 10;
 
 let rotationSpeed = 0.0005;
 
-function animate() {
+/**
+ * Animation loop to rotate cubes and update line to vertex
+ * @function animate
+ * @returns {void}
+ */
+function animate(): void {
     requestAnimationFrame(animate);
     gameObjects.forEach(obj => {
         obj.getMesh().rotation.y += rotationSpeed;
@@ -89,6 +94,29 @@ function animate() {
     // group.rotation.y += rotationSpeed;
     updateLineToVertex(line, randomCubeIndex, randomVertexIndex);
     renderer.render(scene, camera);
+}
+
+/**
+ * Singleton class to manage the game loop
+ * @class GameLoop
+ * @example
+ * const gameLoop = GameLoop.getInstance();
+ * gameLoop.start();
+ */
+class GameLoop {
+    private static instance: GameLoop;
+    private constructor() {
+        // Private constructor to prevent direct instantiation
+    }
+    public static getInstance(): GameLoop {
+        if (!GameLoop.instance) {
+            GameLoop.instance = new GameLoop();
+        }
+        return GameLoop.instance;
+    }
+    public start(): void {
+        animate();
+    }
 }
 
 //create a line where one end of it is at the bottom left of the scene and the other end is the position of the random vertex relative to the chosen cube
@@ -211,4 +239,5 @@ const handleCubeControls = (materialColor: string, metalness: number, roughness:
 setupUIControls(handleDarkModeToggle, handleSpeedChange, handleWorldGradient, handleDirectionalLightControls, handleCubeControls);
 
 applyColors();
-animate();
+const gameLoop = GameLoop.getInstance();
+gameLoop.start();
