@@ -1,13 +1,32 @@
 import * as THREE from 'three';
 import { v4 as uuidv4 } from 'uuid';
 
-// create a gameobject class using three.js that creates a provided geometry and material, and has methods to set position, rotation, and scale
+/**
+ * GameObject class represents a 3D object in a Three.js scene with unique ID, name, and interaction capabilities.
+ * It supports click and hover events, and provides metadata about its properties.
+ * @example
+ * ```typescript
+ * const gameObject = new GameObject();
+ * gameObject.setPosition(1, 2, 3);
+ * scene.add(gameObject.getMesh());
+ * ```
+ * @class GameObject
+ * @property {THREE.Mesh} mesh - The Three.js mesh representing the object.
+ * @property {string} id - Unique identifier for the GameObject.
+ * @property {string} staticName - Static name of the class, defaults to 'GameObject'.
+ * @property {string} providedName - Optional name provided during instantiation.
+ * @property {boolean} verbose - If true, enables verbose logging. Defaults to false.
+ *
+ * @see {@link https://threejs.org/docs/index.html#api/en/core/Object3D|Three.js Object3D}
+ */
 class GameObject {
     mesh: THREE.Mesh;
     id: string = uuidv4();
     staticName: string = 'GameObject';
     providedName: string = '';
-    constructor(geometry?: THREE.BufferGeometry, material?: THREE.Material, providedName?: string) {
+    verbose: boolean = false;
+    constructor(geometry?: THREE.BufferGeometry, material?: THREE.Material, providedName?: string, verbose?: boolean) {
+        if (verbose) this.verbose = verbose;
         if (providedName) this.providedName = providedName;
         if (!material) {
             material = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
@@ -41,7 +60,16 @@ class GameObject {
                infoDiv.style.top = `${event.clientY + 10}px`;
                infoDiv.style.display = 'block';
             }
-        }));
+        }),verbose);
+
+        this.onHoverEnd(() => {
+            let infoDiv = document.getElementById('info-div');
+            if (infoDiv) {
+                infoDiv.style.display = 'none';
+            }
+        }, verbose);
+
+        if (this.verbose) console.log(`Created ${this.providedName || this.staticName} with ID: ${this.id}`);
     };
     setPosition(x: number, y: number, z: number) {
         this.mesh.position.set(x, y, z);
@@ -59,35 +87,24 @@ class GameObject {
     onClick(callback: (event: MouseEvent) => void) {
         // Add event listener to the renderer's DOM element
         window.addEventListener('click', (event) => {
-            // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
-            const mouse = new THREE.Vector2();
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            // Raycaster to find intersected objects
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, (window as any).camera); // Assuming camera is globally accessible
-
-            const intersects = raycaster.intersectObject(this.mesh);
+            const intersects = this._getIntersectsWithMouseRaycast(event);
             if (intersects.length > 0) {
                 callback(event);
             }
         });
     }
 
-    onHover(callback: (event: MouseEvent, isHovering: boolean) => void) {
+    /**
+     * Registers a callback function to be invoked when the mouse hovers over or leaves the GameObject.
+     * The callback receives the mouse event and a boolean indicating whether the mouse is currently hovering over the object.
+     * @param callback {(event: MouseEvent, isHovering: boolean) => void} - The function to call on hover events.
+     * @param verbose {boolean} - If true, logs additional information to the console.
+     */
+    onHover(callback: (event: MouseEvent, isHovering: boolean) => void, verbose?: boolean) {
+        if (verbose) console.log('Registering onHover callback');
         let isHovering = false;
         window.addEventListener('mousemove', (event) => {
-            // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
-            const mouse = new THREE.Vector2();
-            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
-            // Raycaster to find intersected objects
-            const raycaster = new THREE.Raycaster();
-            raycaster.setFromCamera(mouse, (window as any).camera); // Assuming camera is globally accessible
-
-            const intersects = raycaster.intersectObject(this.mesh);
+            const intersects = this._getIntersectsWithMouseRaycast(event);
             if (intersects.length > 0) {
                 if (!isHovering) {
                     isHovering = true;
@@ -100,6 +117,60 @@ class GameObject {
                 }
             }
         });
+    }
+
+    /**
+     * Registers a callback function to be invoked when the mouse starts hovering over the GameObject.
+     * @param callback {() => void} - The function to call when hovering starts.
+     * @param verbose {boolean} - If true, logs additional information to the console.
+     */
+    onHoverStart(callback: () => void, verbose?: boolean) {
+        if (verbose) console.log('Registering onHoverStart callback');
+        let isHovering = false;
+        window.addEventListener('mousemove', (event) => {
+            const intersects = this._getIntersectsWithMouseRaycast(event);
+            if (intersects.length > 0) {
+                if (!isHovering) {
+                    isHovering = true;
+                    callback();
+                }
+            } else {
+                isHovering = false;
+            }
+        });
+    }
+
+    /**
+     * Registers a callback function to be invoked when the mouse stops hovering over the GameObject.
+     * @param callback
+     */
+    onHoverEnd(callback: () => void, verbose?: boolean) {
+        if (verbose) console.log('Registering onHoverEnd callback');
+        let isHovering = false;
+        window.addEventListener('mousemove', (event) => {
+            const intersects = this._getIntersectsWithMouseRaycast(event);
+            if (intersects.length > 0) {
+                isHovering = true;
+            } else {
+                if (isHovering) {
+                    isHovering = false;
+                    callback();
+                }
+            }
+        });
+    }
+
+    private _getIntersectsWithMouseRaycast(event: MouseEvent) {
+        // Calculate mouse position in normalized device coordinates (-1 to +1) for both components
+        const mouse = new THREE.Vector2();
+        mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+        // Raycaster to find intersected objects
+        const raycaster = new THREE.Raycaster();
+        raycaster.setFromCamera(mouse, (window as any).camera); // Assuming camera is globally accessible
+
+        return raycaster.intersectObject(this.mesh);
     }
 
     /**

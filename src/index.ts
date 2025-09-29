@@ -65,7 +65,7 @@ scene.fog = new THREE.Fog(0x000000, 20, 80); // Black fog, starts at 20 units, f
 
 const gap = 0.5;
 for (let i = 0; i < NUMBER_OF_CUBES; i++) {
-    const gameObject = new GameObject(geometry, material, `Cube_${i}`);
+    const gameObject = new GameObject(geometry, material, `Cube_${i}`, false);
     gameObject.setPosition(0, (i * (cubeHeight + gap)) - yOffset, -10);
     gameObject.setRotation(0, (i / NUMBER_OF_CUBES) * Math.PI * 2, 0);
     group.add(gameObject.getMesh());
