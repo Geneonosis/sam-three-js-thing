@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { setupUIControls } from "./uiControls";
-import {LineBasicMaterial} from "three";
 import {GameObject} from "./GameObject";
-import { TopicRouter, Topic } from './TopicRouter';
+import { TopicRouter } from './TopicRouter';
 import { createHUD } from "./hud";
+import { loadTopics } from './topicLoader';
+import { createWorldPageManager } from './worldPages';
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -12,72 +13,40 @@ const renderer = new THREE.WebGLRenderer();
 
 const hud = createHUD();
 
+const pageManager = createWorldPageManager(
+    scene,
+    camera,
+    (anchorId, out) => {
+        const anchor = scene.getObjectByName(anchorId);
+        if (!anchor) {
+            return false;
+        }
+        anchor.getWorldPosition(out);
+        return true;
+    },
+);
+
 const router = new TopicRouter(camera);
 router.setDuration(1100);
 
-// Topic helpers
-const V = (x:number,y:number,z:number) => new THREE.Vector3(x,y,z);
+const { topics, pages } = loadTopics(hud);
 
-// Build “stations” for your five questions
-const topics: Topic[] = [
-    {
-        id: 'what',
-        title: '1) What is Three.js?',
-        position: V(-12, 4, 14),
-        lookAt: V(0, 0, -10),
-        onEnter: () => hud.set(`
-      <h3>What is Three.js?</h3>
-      Three.js is a JS library that wraps WebGL so you can compose scenes with objects, lights, materials, and cameras.
-      It handles shaders, buffers, and matrices so you can focus on making things, not boilerplate.
-    `),
-    },
-    {
-        id: 'why',
-        title: '2) Why 3D in the browser?',
-        position: V(0, 8, 16),
-        lookAt: V(0, 0, -10),
-        onEnter: () => hud.set(`
-      <h3>Why render 3D in-browser?</h3>
-      Zero install, instant share links, data-driven interactivity, and a direct line to the web’s ecosystem.
-      Use cases: product viewers, data viz, education, art, games, XR.
-    `),
-    },
-    {
-        id: 'history',
-        title: '3) History of 3D on the web',
-        position: V(12, 4, 14),
-        lookAt: V(0, 0, -10),
-        onEnter: () => hud.set(`
-      <h3>History</h3>
-      VRML/Java applets → Flash/Stage3D → WebGL (2011) → Three.js abstraction → WebGPU era.
-      Tooling and performance matured; now it’s mainstream.
-    `),
-    },
-    {
-        id: 'hurdles',
-        title: '4) Technical hurdles',
-        position: V(12, -2, 3),
-        lookAt: V(0, 0, -10),
-        onEnter: () => hud.set(`
-      <h3>Hurdles</h3>
-      Secure GPU access, perf in JS, cross-browser quirks, shader debugging, and dev ergonomics.
-      Today: TS, Vite, devtools, and libs like Three reduce the pain.
-    `),
-    },
-    {
-        id: 'showcase',
-        title: '5) Showcase',
-        position: V(0, -6, 2),
-        lookAt: V(0, -5, -2), // your group
-        onEnter: () => hud.set(`
-      <h3>Showcase: Your Demo</h3>
-      Live-tweak lights, materials, and rotation. Highlight an object, surface its metadata, and talk through the scene graph.
-    `),
-    },
-];
+pages.forEach((page) => pageManager.registerPage(page));
+pageManager.setActivePage(null);
 
-topics.forEach(t => router.add(t));
-router.goTo(0);
+if (topics.length === 0) {
+    console.warn('No topics found in /src/topics');
+} else {
+    topics.forEach((topic) => {
+        const originalOnEnter = topic.onEnter;
+        topic.onEnter = () => {
+            pageManager.setActivePage(topic.id);
+            originalOnEnter?.();
+        };
+        router.add(topic);
+    });
+    router.goTo(0);
+}
 
 // Keyboard: ArrowLeft/ArrowRight, 1-5 to jump
 window.addEventListener('keydown', (e) => {
@@ -86,22 +55,6 @@ window.addEventListener('keydown', (e) => {
     const n = Number(e.key);
     if (!Number.isNaN(n) && n >= 1 && n <= topics.length) router.goTo(n - 1);
 });
-
-// Quick on-screen buttons
-const nav = document.createElement('div');
-nav.style.position = 'absolute';
-nav.style.right = '20px';
-nav.style.bottom = '20px';
-nav.style.display = 'flex';
-nav.style.gap = '8px';
-['Prev','Next'].forEach(label => {
-    const b = document.createElement('button');
-    b.textContent = label;
-    b.onclick = () => (label === 'Next' ? router.next() : router.prev());
-    nav.appendChild(b);
-});
-document.body.appendChild(nav);
-
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -177,7 +130,7 @@ camera.position.z = 10;
 let rotationSpeed = 0.0005;
 
 /**
- * Animation loop to rotate cubes and update line to vertex
+ * Animation loop to rotate cubes and keep navigation/page state in sync.
  * @function animate
  * @returns {void}
  */
@@ -191,10 +144,8 @@ function animate(): void {
         obj.getMesh().rotation.y += rotationSpeed;
     })
 
-    // group.rotation.y += rotationSpeed;
-    updateLineToVertex(line, randomCubeIndex, randomVertexIndex);
-
     router.update(deltaMs);
+    pageManager.update();
     renderer.render(scene, camera);
 }
 
@@ -219,36 +170,6 @@ class GameLoop {
     public start(): void {
         animate();
     }
-}
-
-//create a line where one end of it is at the bottom left of the scene and the other end is the position of the random vertex relative to the chosen cube
-function createLineToVertex(vertex: THREE.Vector3) {
-    const material = new THREE.LineBasicMaterial({ color: 0xffffff });
-    const points = [];
-    points.push(new THREE.Vector3(-5, - (NUMBER_OF_CUBES / 2) * cubeHeight, -10));
-    points.push(vertex);
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    const line = new THREE.Line(geometry, material);
-    scene.add(line);
-    return line;
-}
-
-const randomCubeIndex = Math.floor(Math.random() * gameObjects.length);
-const {vertex, randomVertexIndex} = gameObjects[randomCubeIndex | 0].getRandomVertex();
-const line = createLineToVertex(vertex);
-
-//create a function that will update the end vertex of the line in the animation loop, using the same cube index in the cube array
-const updateLineToVertex = (line: THREE.Line, cubeIndex: number, randomVertexIndex: number) => {
-    const gameObject = gameObjects[cubeIndex];
-    const positionAttribute = gameObject.getMesh().geometry.getAttribute('position');
-    const vertex = new THREE.Vector3().fromBufferAttribute(positionAttribute, randomVertexIndex);
-    gameObject.getMesh().localToWorld(vertex);
-    const points = [];
-    points.push(new THREE.Vector3(-1,-10, -9));
-    points.push(new THREE.Vector3(vertex.x, vertex.y, vertex.z));
-    line.renderOrder = 2; // ensure the line is rendered on top
-    (line.material as LineBasicMaterial).depthTest = false; // disable depth testing for the line material
-    line.geometry.setFromPoints(points);
 }
 
 // Define color schemes for dark and light modes
@@ -342,7 +263,19 @@ const handleCubeControls = (materialColor: string, metalness: number, roughness:
     material.roughness = roughness;
 }
 
-setupUIControls(handleDarkModeToggle, handleSpeedChange, handleWorldGradient, handleDirectionalLightControls, handleCubeControls);
+setupUIControls(
+    handleDarkModeToggle,
+    handleSpeedChange,
+    handleWorldGradient,
+    handleDirectionalLightControls,
+    handleCubeControls,
+    {
+        navControls: [
+            { icon: 'chevron_left', aria: 'Previous topic', handler: () => router.prev() },
+            { icon: 'chevron_right', aria: 'Next topic', handler: () => router.next() },
+        ],
+    },
+);
 
 applyColors();
 const gameLoop = GameLoop.getInstance();

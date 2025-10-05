@@ -13,8 +13,19 @@ export function createHUD() {
     hud.style.fontFamily = 'system-ui, sans-serif';
     hud.style.lineHeight = '1.35';
     hud.style.fontSize = '14px';
+    hud.style.display = 'none';
     document.body.appendChild(hud);
 
-    const set = (html: string) => { hud.innerHTML = html; };
+    const set = (html: string) => {
+        const content = html.trim();
+        if (content.length === 0) {
+            hud.innerHTML = '';
+            hud.style.display = 'none';
+            return;
+        }
+
+        hud.innerHTML = html;
+        hud.style.display = 'block';
+    };
     return { set };
 }

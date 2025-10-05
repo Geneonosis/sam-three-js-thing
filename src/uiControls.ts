@@ -1,241 +1,260 @@
+export type NavControl = {
+    icon: string;
+    aria: string;
+    handler: () => void;
+};
+
+export type ControlsOptions = {
+    host?: HTMLElement;
+    navControls?: NavControl[];
+};
+
+function createIconButton(icon: string, aria: string, handler: () => void): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'hud-nav__button';
+    button.setAttribute('aria-label', aria);
+    button.title = aria;
+    button.innerHTML = `<span class="material-symbols-outlined" aria-hidden="true">${icon}</span>`;
+    button.addEventListener('click', handler);
+    return button;
+}
+
+function createActionButton(label: string, handler: () => void): HTMLButtonElement {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'hud-panel__action';
+    button.textContent = label;
+    button.addEventListener('click', handler);
+    return button;
+}
+
+function addRangeRow(
+    panel: HTMLElement,
+    label: string,
+    options: {
+        id: string;
+        min: string;
+        max: string;
+        step?: string;
+        value: string;
+        ariaLabel: string;
+        onInput: (event: Event) => void;
+    },
+): HTMLInputElement {
+    const row = document.createElement('label');
+    row.className = 'hud-panel__row';
+
+    const text = document.createElement('span');
+    text.className = 'hud-panel__label';
+    text.textContent = label;
+
+    const input = document.createElement('input');
+    input.type = 'range';
+    input.id = options.id;
+    input.className = 'hud-panel__slider';
+    input.min = options.min;
+    input.max = options.max;
+    input.value = options.value;
+    input.setAttribute('aria-label', options.ariaLabel);
+    if (options.step !== undefined) input.step = options.step;
+    input.addEventListener('input', options.onInput);
+
+    row.append(text, input);
+    panel.appendChild(row);
+    return input;
+}
+
+function addColorRow(panel: HTMLElement, label: string, inputs: HTMLElement[]): void {
+    const row = document.createElement('div');
+    row.className = 'hud-panel__row';
+
+    const text = document.createElement('span');
+    text.className = 'hud-panel__label';
+    text.textContent = label;
+
+    const group = document.createElement('div');
+    group.className = 'hud-panel__color-group';
+    inputs.forEach((input) => group.appendChild(input));
+
+    row.append(text, group);
+    panel.appendChild(row);
+}
+
+function createColorInput(id: string, value: string, ariaLabel: string): HTMLInputElement {
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.id = id;
+    input.value = value;
+    input.className = 'hud-panel__color';
+    input.setAttribute('aria-label', ariaLabel);
+    return input;
+}
+
 export function setupUIControls(
     toggleCallback: () => void,
     speedCallback: (value: number) => void,
     worldGradientCallback: (startColor: string, endColor: string) => void,
     lightContorlsCallback: (color: string, intensity: number) => void,
     cubeControls: (materialColor: string, metalness: number, roughness: number) => void,
+    options?: ControlsOptions,
 ) {
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.top = '20px';
-    container.style.right = '20px';
-    container.style.zIndex = '1000';
+    const host = options?.host ?? document.body;
+    const navControls = options?.navControls ?? [];
 
-    const button = document.createElement('button');
-    button.id = 'toggle-button';
-    button.textContent = 'Toggle Dark/Light Mode';
-    button.addEventListener('click', toggleCallback);
-    container.appendChild(button);
+    const wrapper = document.createElement('div');
+    wrapper.className = 'hud-controls';
+    if (!options?.host) wrapper.classList.add('hud-controls--floating');
 
-    const sliderLabel = document.createElement('label');
-    sliderLabel.htmlFor = 'speed-slider';
-    sliderLabel.style.fontFamily = 'Arial, sans-serif';
-    sliderLabel.textContent = 'Speed';
-    container.appendChild(sliderLabel);
+    const nav = document.createElement('div');
+    nav.className = 'hud-nav';
+    wrapper.appendChild(nav);
 
-    // slider to control the speed of the specified component's rotation
-    const slider = document.createElement('input');
-    slider.ariaLabel = 'Speed Slider';
-    slider.type = 'range';
-    slider.min = '0';
-    slider.max = '2000';
-    slider.value = '100';
-    slider.id = 'speed-slider';
-    slider.style.marginLeft = '10px';
-    slider.addEventListener('input', (event) => {
-        const target = event.target as HTMLInputElement;
-        const value = parseInt(target.value);
-        speedCallback(value);
-    });
-    container.appendChild(slider);
-
-    //create two color picker input controls for the color picker tool for the world gradient
-    const startColorInput = document.createElement('input');
-    startColorInput.ariaLabel = 'Start Color Picker';
-    startColorInput.type = 'color';
-    startColorInput.value = '#000000';
-    startColorInput.style.marginLeft = '10px';
-
-    const endColorInput = document.createElement('input');
-    endColorInput.ariaLabel = 'End Color Picker';
-    endColorInput.type = 'color';
-    endColorInput.value = '#ffffff';
-    endColorInput.style.marginLeft = '10px';
-
-    startColorInput.addEventListener('input', () => {
-        worldGradientCallback(startColorInput.value, endColorInput.value);
+    navControls.forEach(({ icon, aria, handler }) => {
+        nav.appendChild(createIconButton(icon, aria, handler));
     });
 
-    endColorInput.addEventListener('input', () => {
-        worldGradientCallback(startColorInput.value, endColorInput.value);
-    });
+    const panel = document.createElement('div');
+    panel.className = 'hud-panel';
+    wrapper.appendChild(panel);
 
-    container.appendChild(startColorInput);
-    container.appendChild(endColorInput);
-
-    const lightColorInput = document.createElement('input');
-    lightColorInput.ariaLabel = 'Light Color Picker';
-    lightColorInput.type = 'color';
-    lightColorInput.value = '#87cefa'; // default sky blue
-    lightColorInput.style.marginLeft = '10px';
-    container.appendChild(lightColorInput);
-
-    const intensityLabel = document.createElement('label');
-    intensityLabel.htmlFor = 'intensity-slider';
-    intensityLabel.style.fontFamily = 'Arial, sans-serif';
-    intensityLabel.style.marginLeft = '10px';
-    intensityLabel.textContent = 'Light Intensity';
-    container.appendChild(intensityLabel);
-
-    const intensitySlider = document.createElement('input');
-    intensitySlider.ariaLabel = 'Light Intensity Slider';
-    intensitySlider.type = 'range';
-    intensitySlider.min = '0';
-    intensitySlider.max = '2';
-    intensitySlider.step = '0.01';
-    intensitySlider.value = '1';
-    intensitySlider.id = 'intensity-slider';
-    intensitySlider.style.marginLeft = '10px';
-    container.appendChild(intensitySlider);
-
-    const updateLightControls = () => {
-        const color = lightColorInput.value;
-        const intensity = parseFloat(intensitySlider.value);
-        lightContorlsCallback(color, intensity);
+    let isPanelOpen = false;
+    const togglePanel = () => {
+        isPanelOpen = !isPanelOpen;
+        panel.classList.toggle('hud-panel--open', isPanelOpen);
+        settingsButton.setAttribute('aria-expanded', String(isPanelOpen));
     };
 
-    lightColorInput.addEventListener('input', updateLightControls);
-    intensitySlider.addEventListener('input', updateLightControls);
+    const settingsButton = createIconButton('settings', 'Toggle settings menu', togglePanel);
+    settingsButton.id = 'controls-panel-toggle';
+    settingsButton.setAttribute('aria-expanded', 'false');
+    nav.appendChild(settingsButton);
 
-    // cube controls
-    const materialColorInput = document.createElement('input');
-    materialColorInput.ariaLabel = 'Material Color Picker';
-    materialColorInput.type = 'color';
-    materialColorInput.value = '#ffffff'; // default white
-    materialColorInput.style.marginLeft = '10px';
-    container.appendChild(materialColorInput);
+    const actions = document.createElement('div');
+    actions.className = 'hud-panel__actions';
 
-    const metalnessLabel = document.createElement('label');
-    metalnessLabel.htmlFor = 'metalness-slider';
-    metalnessLabel.style.fontFamily = 'Arial, sans-serif';
-    metalnessLabel.style.marginLeft = '10px';
-    metalnessLabel.textContent = 'Metalness';
-    container.appendChild(metalnessLabel);
+    const darkModeButton = createActionButton('Toggle Dark/Light Mode', toggleCallback);
+    darkModeButton.id = 'toggle-button';
+    actions.appendChild(darkModeButton);
 
-    const metalnessSlider = document.createElement('input');
-    metalnessSlider.ariaLabel = 'Metalness Slider';
-    metalnessSlider.type = 'range';
-    metalnessSlider.min = '0';
-    metalnessSlider.max = '1';
-    metalnessSlider.step = '0.01';
-    metalnessSlider.value = '0.5';
-    metalnessSlider.id = 'metalness-slider';
-    metalnessSlider.style.marginLeft = '10px';
-    container.appendChild(metalnessSlider);
+    const startColorInput = createColorInput('gradient-start', '#000000', 'Start Color Picker');
+    const endColorInput = createColorInput('gradient-end', '#ffffff', 'End Color Picker');
+    const updateGradient = () => {
+        worldGradientCallback(startColorInput.value, endColorInput.value);
+    };
+    startColorInput.addEventListener('input', updateGradient);
+    endColorInput.addEventListener('input', updateGradient);
 
-    const roughnessLabel = document.createElement('label');
-    roughnessLabel.htmlFor = 'roughness-slider';
-    roughnessLabel.style.fontFamily = 'Arial, sans-serif';
-    roughnessLabel.style.marginLeft = '10px';
-    roughnessLabel.textContent = 'Roughness';
-    container.appendChild(roughnessLabel);
+    addColorRow(panel, 'Gradient', [startColorInput, endColorInput]);
 
-    const roughnessSlider = document.createElement('input');
-    roughnessSlider.ariaLabel = 'Roughness Slider';
-    roughnessSlider.type = 'range';
-    roughnessSlider.min = '0';
-    roughnessSlider.max = '1';
-    roughnessSlider.step = '0.001';
-    roughnessSlider.value = '0.5';
-    roughnessSlider.id = 'roughness-slider';
-    roughnessSlider.style.marginLeft = '10px';
-    container.appendChild(roughnessSlider);
+    const speedSlider = addRangeRow(panel, 'Speed', {
+        id: 'speed-slider',
+        min: '0',
+        max: '2000',
+        value: '100',
+        ariaLabel: 'Speed Slider',
+        onInput: (event: Event) => {
+            const target = event.target as HTMLInputElement;
+            speedCallback(parseInt(target.value, 10));
+        },
+    });
 
-    const updateCubeControls = () => {
-        const materialColor = materialColorInput.value;
-        const metalness = parseFloat(metalnessSlider.value);
-        const roughness = parseFloat(roughnessSlider.value);
-        cubeControls(materialColor, metalness, roughness);
+    const lightColorInput = createColorInput('light-color', '#87cefa', 'Light Color Picker');
+    const intensitySlider = addRangeRow(panel, 'Light Intensity', {
+        id: 'intensity-slider',
+        min: '0',
+        max: '2',
+        step: '0.01',
+        value: '1',
+        ariaLabel: 'Light Intensity Slider',
+        onInput: (event: Event) => {
+            const target = event.target as HTMLInputElement;
+            lightContorlsCallback(lightColorInput.value, parseFloat(target.value));
+        },
+    });
+    lightColorInput.addEventListener('input', () => {
+        lightContorlsCallback(lightColorInput.value, parseFloat(intensitySlider.value));
+    });
+    addColorRow(panel, 'Lighting', [lightColorInput]);
+
+    const materialColorInput = createColorInput('material-color', '#ffffff', 'Material Color Picker');
+    addColorRow(panel, 'Material', [materialColorInput]);
+
+    let metalnessSlider: HTMLInputElement;
+    let roughnessSlider: HTMLInputElement;
+
+    const updateMaterial = () => {
+        cubeControls(
+            materialColorInput.value,
+            parseFloat(metalnessSlider.value),
+            parseFloat(roughnessSlider.value),
+        );
     };
 
-    materialColorInput.addEventListener('input', updateCubeControls);
-    metalnessSlider.addEventListener('input', updateCubeControls);
-    roughnessSlider.addEventListener('input', updateCubeControls);
+    materialColorInput.addEventListener('input', updateMaterial);
 
-    // save button
-    const saveButton = document.createElement('button');
+    metalnessSlider = addRangeRow(panel, 'Metalness', {
+        id: 'metalness-slider',
+        min: '0',
+        max: '1',
+        step: '0.01',
+        value: '0.5',
+        ariaLabel: 'Metalness Slider',
+        onInput: updateMaterial,
+    });
+
+    roughnessSlider = addRangeRow(panel, 'Roughness', {
+        id: 'roughness-slider',
+        min: '0',
+        max: '1',
+        step: '0.001',
+        value: '0.5',
+        ariaLabel: 'Roughness Slider',
+        onInput: updateMaterial,
+    });
+
+    const saveButton = createActionButton('Save Settings', () => {
+        saveSettings(
+            darkModeButton.textContent === 'Switch to Light Mode',
+            parseInt(speedSlider.value, 10),
+            startColorInput.value,
+            endColorInput.value,
+            lightColorInput.value,
+            parseFloat(intensitySlider.value),
+            materialColorInput.value,
+            parseFloat(metalnessSlider.value),
+            parseFloat(roughnessSlider.value),
+        );
+    });
     saveButton.id = 'save-button';
-    saveButton.textContent = 'Save Settings';
-    saveButton.style.display = 'block';
-    saveButton.style.marginTop = '10px';
-    saveButton.addEventListener('click', () => {
-        const darkMode = button.textContent === 'Switch to Light Mode';
-        const speed = parseInt(slider.value);
-        const startColor = startColorInput.value;
-        const endColor = endColorInput.value;
-        const lightColor = lightColorInput.value;
-        const lightIntensity = parseFloat(intensitySlider.value);
-        const materialColor = materialColorInput.value;
-        const metalness = parseFloat(metalnessSlider.value);
-        const roughness = parseFloat(roughnessSlider.value);
-        saveSettings(darkMode, speed, startColor, endColor, lightColor, lightIntensity, materialColor, metalness, roughness);
-    });
-    container.appendChild(saveButton);
 
-    // load settings from session storage if available
-    const loadButton = document.createElement('button');
-    loadButton.id = 'load-button';
-    loadButton.textContent = 'Load Settings';
-    loadButton.style.display = 'block';
-    loadButton.style.marginTop = '10px';
-    loadButton.addEventListener('click', () => {
+    const loadButton = createActionButton('Load Settings', () => {
         const settings = loadSettings();
-        if (settings) {
-            const {
-                darkMode,
-                speed,
-                startColor,
-                endColor,
-                lightColor,
-                lightIntensity,
-                materialColor,
-                metalness,
-                roughness,
-            } = settings;
+        if (!settings) return;
 
-            // apply settings to controls
-            if (darkMode) {
-                button.textContent = 'Switch to Light Mode';
-            } else {
-                button.textContent = 'Switch to Dark Mode';
-            }
-            slider.value = speed.toString();
-            startColorInput.value = startColor;
-            endColorInput.value = endColor;
-            lightColorInput.value = lightColor;
-            intensitySlider.value = lightIntensity.toString();
-            materialColorInput.value = materialColor;
-            metalnessSlider.value = metalness.toString();
-            roughnessSlider.value = roughness.toString();
+        darkModeButton.textContent = settings.darkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode';
+        speedSlider.value = String(settings.speed);
+        startColorInput.value = settings.startColor;
+        endColorInput.value = settings.endColor;
+        lightColorInput.value = settings.lightColor;
+        intensitySlider.value = String(settings.lightIntensity);
+        materialColorInput.value = settings.materialColor;
+        metalnessSlider.value = String(settings.metalness);
+        roughnessSlider.value = String(settings.roughness);
 
-            // trigger callbacks to apply settings
-            speedCallback(speed);
-            worldGradientCallback(startColor, endColor);
-            lightContorlsCallback(lightColor, lightIntensity);
-            cubeControls(materialColor, metalness, roughness);
-        }
+        speedCallback(settings.speed);
+        worldGradientCallback(settings.startColor, settings.endColor);
+        lightContorlsCallback(settings.lightColor, settings.lightIntensity);
+        cubeControls(settings.materialColor, settings.metalness, settings.roughness);
     });
-    container.appendChild(loadButton);
+    loadButton.id = 'load-button';
 
-    document.body.appendChild(container);
+    actions.append(darkModeButton, saveButton, loadButton);
+    panel.appendChild(actions);
+
+    host.appendChild(wrapper);
 }
 
-/**
- * Saves the current settings to session storage.
- * @example
- * ```
- * saveSettings(darkMode, speed, startColor, endColor, lightColor, lightIntensity, materialColor, metalness, roughness);
- * ```
- * @param darkMode
- * @param speed
- * @param startColor
- * @param endColor
- * @param lightColor
- * @param lightIntensity
- * @param materialColor
- * @param metalness
- * @param roughness
- */
 export function saveSettings(
     darkMode: boolean,
     speed: number,
@@ -268,4 +287,4 @@ const loadSettings = () => {
         return JSON.parse(savedSettings);
     }
     return null;
-}
+};
