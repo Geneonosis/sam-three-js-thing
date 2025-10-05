@@ -135,7 +135,7 @@ export function setupUIControls(
     roughnessSlider.type = 'range';
     roughnessSlider.min = '0';
     roughnessSlider.max = '1';
-    roughnessSlider.step = '0.01';
+    roughnessSlider.step = '0.001';
     roughnessSlider.value = '0.5';
     roughnessSlider.id = 'roughness-slider';
     roughnessSlider.style.marginLeft = '10px';

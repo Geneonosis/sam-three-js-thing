@@ -2,11 +2,106 @@ import * as THREE from 'three';
 import { setupUIControls } from "./uiControls";
 import {LineBasicMaterial} from "three";
 import {GameObject} from "./GameObject";
+import { TopicRouter, Topic } from './TopicRouter';
+import { createHUD } from "./hud";
 
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
 (window as any).camera = camera;
 const renderer = new THREE.WebGLRenderer();
+
+const hud = createHUD();
+
+const router = new TopicRouter(camera);
+router.setDuration(1100);
+
+// Topic helpers
+const V = (x:number,y:number,z:number) => new THREE.Vector3(x,y,z);
+
+// Build “stations” for your five questions
+const topics: Topic[] = [
+    {
+        id: 'what',
+        title: '1) What is Three.js?',
+        position: V(-12, 4, 14),
+        lookAt: V(0, 0, -10),
+        onEnter: () => hud.set(`
+      <h3>What is Three.js?</h3>
+      Three.js is a JS library that wraps WebGL so you can compose scenes with objects, lights, materials, and cameras.
+      It handles shaders, buffers, and matrices so you can focus on making things, not boilerplate.
+    `),
+    },
+    {
+        id: 'why',
+        title: '2) Why 3D in the browser?',
+        position: V(0, 8, 16),
+        lookAt: V(0, 0, -10),
+        onEnter: () => hud.set(`
+      <h3>Why render 3D in-browser?</h3>
+      Zero install, instant share links, data-driven interactivity, and a direct line to the web’s ecosystem.
+      Use cases: product viewers, data viz, education, art, games, XR.
+    `),
+    },
+    {
+        id: 'history',
+        title: '3) History of 3D on the web',
+        position: V(12, 4, 14),
+        lookAt: V(0, 0, -10),
+        onEnter: () => hud.set(`
+      <h3>History</h3>
+      VRML/Java applets → Flash/Stage3D → WebGL (2011) → Three.js abstraction → WebGPU era.
+      Tooling and performance matured; now it’s mainstream.
+    `),
+    },
+    {
+        id: 'hurdles',
+        title: '4) Technical hurdles',
+        position: V(12, -2, 3),
+        lookAt: V(0, 0, -10),
+        onEnter: () => hud.set(`
+      <h3>Hurdles</h3>
+      Secure GPU access, perf in JS, cross-browser quirks, shader debugging, and dev ergonomics.
+      Today: TS, Vite, devtools, and libs like Three reduce the pain.
+    `),
+    },
+    {
+        id: 'showcase',
+        title: '5) Showcase',
+        position: V(0, -6, 2),
+        lookAt: V(0, -5, -2), // your group
+        onEnter: () => hud.set(`
+      <h3>Showcase: Your Demo</h3>
+      Live-tweak lights, materials, and rotation. Highlight an object, surface its metadata, and talk through the scene graph.
+    `),
+    },
+];
+
+topics.forEach(t => router.add(t));
+router.goTo(0);
+
+// Keyboard: ArrowLeft/ArrowRight, 1-5 to jump
+window.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight') router.next();
+    if (e.key === 'ArrowLeft') router.prev();
+    const n = Number(e.key);
+    if (!Number.isNaN(n) && n >= 1 && n <= topics.length) router.goTo(n - 1);
+});
+
+// Quick on-screen buttons
+const nav = document.createElement('div');
+nav.style.position = 'absolute';
+nav.style.right = '20px';
+nav.style.bottom = '20px';
+nav.style.display = 'flex';
+nav.style.gap = '8px';
+['Prev','Next'].forEach(label => {
+    const b = document.createElement('button');
+    b.textContent = label;
+    b.onclick = () => (label === 'Next' ? router.next() : router.prev());
+    nav.appendChild(b);
+});
+document.body.appendChild(nav);
+
 
 renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
@@ -86,13 +181,20 @@ let rotationSpeed = 0.0005;
  * @function animate
  * @returns {void}
  */
+let last = performance.now();
 function animate(): void {
     requestAnimationFrame(animate);
+    const now = performance.now();
+    const deltaMs = now - last; last = now;
+
     gameObjects.forEach(obj => {
         obj.getMesh().rotation.y += rotationSpeed;
     })
+
     // group.rotation.y += rotationSpeed;
     updateLineToVertex(line, randomCubeIndex, randomVertexIndex);
+
+    router.update(deltaMs);
     renderer.render(scene, camera);
 }
 
@@ -231,8 +333,12 @@ const handleDirectionalLightControls = (color: string, intensity: number) => {
 }
 
 const handleCubeControls = (materialColor: string, metalness: number, roughness: number) => {
+    console.log(roughness);
+    console.log(materialColor);
+    console.log(metalness);
     material.color = new THREE.Color(materialColor);
     material.metalness = metalness;
+    console.log(material);
     material.roughness = roughness;
 }
 
