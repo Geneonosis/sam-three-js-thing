@@ -38,28 +38,7 @@ class GameObject extends THREE.Mesh{
             console.log(`Clicked on ${this.providedName || this.staticName} (ID: ${this._id})`);
             console.log(this.getMetaData());
         }));
-        this.onHover(( (event, isHovering) => {
-            if (isHovering) {
-               // create a new div that will follow the mouse cursor and display the name of the object
-               let infoDiv = document.getElementById('info-div');
-               if (!infoDiv) {
-                   infoDiv = document.createElement('div');
-                   infoDiv.id = 'info-div';
-                   infoDiv.style.position = 'absolute';
-                   infoDiv.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
-                   infoDiv.style.color = 'white';
-                   infoDiv.style.padding = '5px';
-                   infoDiv.style.borderRadius = '5px';
-                   infoDiv.style.pointerEvents = 'none';
-                   infoDiv.style.fontFamily = 'Arial, sans-serif';
-                   document.body.appendChild(infoDiv);
-               }
-               infoDiv.innerHTML = `${this.providedName || this.staticName} (ID: ${this._id}) <br> this.getMetaData(): <br> ${this.prettyPrintAsHTML()}`;
-               infoDiv.style.left = `${event.clientX + 10}px`;
-               infoDiv.style.top = `${event.clientY + 10}px`;
-               infoDiv.style.display = 'block';
-            }
-        }),verbose);
+       
 
         if (this.verbose) console.log(`Created ${this.providedName || this.staticName} with ID: ${this._id}`);
     };
